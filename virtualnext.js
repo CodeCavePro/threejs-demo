@@ -4,9 +4,8 @@
  */
 var PointerLockControls = function (camera, cannonBody) {
 
-    var eyeYPos = 2; // eyes are 2 meters above the ground
-    var velocityFactor = 0.2;
-    var jumpVelocity = 20;
+    var velocityFactor = 0.15;
+    var jumpVelocity = 6;
     var scope = this;
 
     var pitchObject = new THREE.Object3D();
@@ -297,7 +296,7 @@ function initCannon() {
     else
         world.solver = solver;
 
-    world.gravity.set(0, -20, 0);
+    world.gravity.set(0, -10, 0);
     world.broadphase = new CANNON.NaiveBroadphase();
 
     // Create a slippery material (friction coefficient = 0.0)
@@ -305,7 +304,7 @@ function initCannon() {
     var physicsContactMaterial = new CANNON.ContactMaterial(physicsMaterial,
         physicsMaterial,
         0.0, // friction coefficient
-        0.3 // restitution
+        0.8 // restitution
     );
     // We must add the contact materials to the world
     world.addContactMaterial(physicsContactMaterial);
@@ -335,15 +334,18 @@ function initCannon() {
 function init() {
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+    // Camera Position
+    camera.position.z = 1.8;
 
     scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0x0984a3 );
     scene.fog = new THREE.Fog(0x000000, 0, 500);
 
-    var ambient = new THREE.AmbientLight(0x111111);
+    var ambient = new THREE.AmbientLight(0x212121);
     scene.add(ambient);
 
     light = new THREE.SpotLight(0xffffff);
-    light.position.set(10, 30, 20);
+    light.position.set(10, 30, 50);
     light.target.position.set(0, 0, 0);
     if (true) {
         light.castShadow = true;
@@ -352,10 +354,10 @@ function init() {
         light.shadow.camera.far = 50; //camera.far;
         light.shadow.camera.fov = 40;
 
-        light.shadowMapBias = 0.1;
-        light.shadowMapDarkness = 0.7;
-        light.shadow.mapSize.width = 2 * 512;
-        light.shadow.mapSize.height = 2 * 512;
+        light.shadowMapBias = 0.0039;
+        light.shadowMapDarkness = 0.5;
+        light.shadow.mapSize.width = 1024;
+        light.shadow.mapSize.height = 1024;
 
         //light.shadowCameraVisible = true;
     }
@@ -367,99 +369,134 @@ function init() {
     scene.add(controls.getObject());
 
     // floor
-    geometry = new THREE.PlaneGeometry(300, 300, 50, 50);
+    geometry = new THREE.PlaneGeometry(75, 75, 100, 100);
     geometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
 
-    material = new THREE.MeshLambertMaterial({
-        color: 0xeeee00
+    material = new THREE.MeshBasicMaterial();
+    var textureLoader = new THREE.TextureLoader();
+    textureLoader.load('Teak.jpg', 
+    function ( texture ) {    
+    
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.offset.set( 0, 0 );
+        texture.repeat.set( 25, 25);
+
+        // The texture has loaded, so assign it to your material object. In the 
+        // next render cycle, this material update will be shown on the plane 
+        // geometry
+        material.map = texture;
+        material.needsUpdate = true;
     });
 
     mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = true;
+    mesh.castShadow = false;
     mesh.receiveShadow = true;
+    mesh.position.set(0, -0.01, 0);
     scene.add(mesh);
 
+    var loader = new THREE.ObjectLoader();
+    loader.load(
+        // resource URL
+        "meiko.json",
+    
+        // onLoad callback
+        // Here the loaded data is assumed to be an object
+        function (obj) {
+
+            obj.castShadow = true;
+            obj.receiveShadow = true;
+
+            var renderingParent = new THREE.Group();
+            renderingParent.scale.set(0.001,0.001,0.001);
+            renderingParent.add(obj);
+
+            var geometry = new  THREE.Geometry();
+            renderingParent.traverse( (child) => {
+                if(child instanceof THREE.Mesh ) {
+                    if (child.geometry instanceof THREE.Geometry) {
+                        geometry.merge( child.geometry );
+                    } else if (child.geometry instanceof THREE.BufferGeometry) {
+                        var convertedGeometry = new THREE.Geometry();
+                        convertedGeometry.fromBufferGeometry(child.geometry);
+                        geometry.merge( convertedGeometry );
+                    }
+                }
+            });
+    
+            geometry.computeBoundingSphere();
+            var boundingSphere = geometry.boundingSphere;
+
+            var offset = boundingSphere.radius * 6;     // get the radius of the bounding sphere for placing lights at certain distance from the object
+            var center = boundingSphere.center;         // get the center of the bounding sphere for pointing lights at it
+
+            const lightColorDark      = '#111111';
+            const lightColorNeutral   = '#606060';
+            const lightColorBright    = '#656565';
+            const lightOpacity        = 0.5;
+
+            // the sun as directional light
+            var sunLight = new THREE.DirectionalLight( lightColorDark );
+            sunLight.name = "The sun :)";
+            sunLight.position.set( center.x + offset, center.y + offset, -center.z-offset );
+            sunLight.position.multiplyScalar( 50 );
+            sunLight.target.position.set( center.x, center.y, center.z );
+        
+            // create a global ambient light object
+            var ambientLight = new THREE.AmbientLight(lightColorDark );
+            ambientLight.name = "Mild ambient light";
+        
+            // create a hemisphere light object
+            var hemisphereLight = new THREE.HemisphereLight(lightColorDark,lightColorBright,lightOpacity );
+            hemisphereLight.name = "Mild hemisphere light";
+            hemisphereLight.position.set( center.x + offset, center.y + offset, center.z + offset );
+        
+            var spotLight1 = new THREE.SpotLight(lightColorBright,lightOpacity );
+            spotLight1.position.set( -center.x - offset / 2, center.y + offset / 1.5, -center.z - offset / 2 );
+            spotLight1.target.position.set( center.x, center.y, center.z );
+        
+            var spotLight2 = new THREE.SpotLight(lightColorNeutral,lightOpacity );
+            spotLight2.position.set( center.x + offset / 2, center.y + offset / 1.5, -center.z - offset / 2 );
+            spotLight2.target.position.set( center.x, center.y, center.z );
+        
+            scene.add( sunLight );
+            scene.add( ambientLight );
+            scene.add( hemisphereLight );
+        
+            // create 2 spotlights
+            var spotLights = [ spotLight1, spotLight2 ];
+            spotLights.forEach(spotLight => {
+                scene.add( spotLight );
+            });
+
+            // Add the loaded object to the scene
+            scene.add(renderingParent);
+            console.log('scene added');
+        },
+    
+        // onProgress callback
+        function (xhr) {
+            console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+        },
+    
+        // onError callback
+        function (err) {
+            console.error('An error happened: ' + err);
+        }
+    ); 
+
     renderer = new THREE.WebGLRenderer({
-        antialias: true
+        antialias: true, alpha: true
     });
+
+    renderer.shadowMapType = THREE.PCFSoftShadowMap; // options are THREE.BasicShadowMap | THREE.PCFShadowMap | THREE.PCFSoftShadowMap
     renderer.shadowMap.enabled = true;
     renderer.shadowMapSoft = true;
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(scene.fog.color, 1);
+    renderer.setClearColor(scene.fog.color, 0);
 
     document.body.appendChild(renderer.domElement);
 
     window.addEventListener('resize', onWindowResize, false);
-
-    // Add boxes
-    var halfExtents = new CANNON.Vec3(1, 1, 1);
-    var boxShape = new CANNON.Box(halfExtents);
-    var boxGeometry = new THREE.BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2);
-    for (var i = 0; i < 7; i++) {
-        var x = (Math.random() - 0.5) * 20;
-        var y = 1 + (Math.random() - 0.5) * 1;
-        var z = (Math.random() - 0.5) * 20;
-        var boxBody = new CANNON.Body({
-            mass: 5
-        });
-        boxBody.addShape(boxShape);
-        var randomColor = '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-        material2 = new THREE.MeshLambertMaterial({
-            color: randomColor
-        });
-        var boxMesh = new THREE.Mesh(boxGeometry, material2);
-        world.add(boxBody);
-        scene.add(boxMesh);
-        boxBody.position.set(x, y, z);
-        boxMesh.position.set(x, y, z);
-        boxMesh.castShadow = true;
-        boxMesh.receiveShadow = true;
-        boxes.push(boxBody);
-        boxMeshes.push(boxMesh);
-    }
-
-
-    // Add linked boxes
-    var size = 0.5;
-    var he = new CANNON.Vec3(size, size, size * 0.1);
-    var boxShape = new CANNON.Box(he);
-    var mass = 0;
-    var space = 0.1 * size;
-    var N = 5,
-        last;
-    var boxGeometry = new THREE.BoxGeometry(he.x * 2, he.y * 2, he.z * 2);
-    for (var i = 0; i < N; i++) {
-        var boxbody = new CANNON.Body({
-            mass: mass
-        });
-        var randomColor = '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-        material2 = new THREE.MeshBasicMaterial({
-            color: randomColor
-        });
-        //console.log (randomColor);
-        boxbody.addShape(boxShape);
-        var boxMesh = new THREE.Mesh(boxGeometry, material2);
-        boxbody.position.set(5, (N - i) * (size * 2 + 2 * space) + size * 2 + space, 0);
-        boxbody.linearDamping = 0.01;
-        boxbody.angularDamping = 0.01;
-        // boxMesh.castShadow = true;
-        boxMesh.receiveShadow = true;
-        world.add(boxbody);
-        scene.add(boxMesh);
-        boxes.push(boxbody);
-        boxMeshes.push(boxMesh);
-
-        if (i != 0) {
-            // Connect this body to the last one
-            var c1 = new CANNON.PointToPointConstraint(boxbody, new CANNON.Vec3(-size, size + space, 0), last, new CANNON.Vec3(-size, -size - space, 0));
-            var c2 = new CANNON.PointToPointConstraint(boxbody, new CANNON.Vec3(size, size + space, 0), last, new CANNON.Vec3(size, -size - space, 0));
-            world.addConstraint(c1);
-            world.addConstraint(c2);
-        } else {
-            mass = 0.3;
-        }
-        last = boxbody;
-    }
 }
 
 function onWindowResize() {

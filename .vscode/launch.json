@@ -8,11 +8,13 @@
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "file://${workspaceFolder}/index.html",
+            "url": "http://localhost:5500",
             "webRoot": "${workspaceFolder}",
             "runtimeExecutable": "${env:LOCALAPPDATA}\\Chromium\\Application\\chrome.exe",
             "runtimeArgs": [
-                "--disable-web-security"
+                "--disable-web-security",
+                "--force-empty-corb-allowlist",
+                "--enable-features=OutOfBlinkCors,CorbAllowlistAlsoAppliesToOorCors"
             ]
         }
     ]
