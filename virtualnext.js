@@ -1,3 +1,4 @@
+var showInfo = false;
 var meikoLogos = [];
 var selMaterial, lastMeshMaterial = false,
     lastMeshID = false,
@@ -424,10 +425,10 @@ window.addEventListener("click", function (event) {
         return;
     }
 
-    clickHandler(event);
+    // handlerRayIntersection(event);
 });
 
-function clickHandler(event) {
+function handlerRayIntersection(event) {
     event.preventDefault();
     hideTooltip();
 
@@ -460,6 +461,21 @@ function clickHandler(event) {
         j++;
     }
 }
+
+window.addEventListener('mousemove', function(event) {
+    if (showInfo)
+        handlerRayIntersection(event);
+});
+
+window.addEventListener('mousedown', function(event) {
+    showInfo = true;
+    handlerRayIntersection(event);
+});
+
+window.addEventListener('mouseup', function(event) {
+    showInfo = false;
+    hideTooltip();
+});
 
 function isEmptyObject(obj) {
     for (var prop in obj) {
