@@ -1,182 +1,9 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- * @author schteppe / https://github.com/schteppe
- */
-var PointerLockControls = function (camera, cannonBody) {
-
-    var velocityFactor = 0.15;
-    var jumpVelocity = 6;
-    var scope = this;
-
-    var pitchObject = new THREE.Object3D();
-    pitchObject.add(camera);
-
-    var yawObject = new THREE.Object3D();
-    yawObject.position.y = 2;
-    yawObject.add(pitchObject);
-
-    var quat = new THREE.Quaternion();
-
-    var moveForward = false;
-    var moveBackward = false;
-    var moveLeft = false;
-    var moveRight = false;
-
-    var canJump = false;
-
-    var contactNormal = new CANNON.Vec3(); // Normal in the contact, pointing *out* of whatever the player touched
-    var upAxis = new CANNON.Vec3(0, 1, 0);
-    cannonBody.addEventListener("collide", function (e) {
-        var contact = e.contact;
-
-        // contact.bi and contact.bj are the colliding bodies, and contact.ni is the collision normal.
-        // We do not yet know which one is which! Let's check.
-        if (contact.bi.id == cannonBody.id) // bi is the player body, flip the contact normal
-            contact.ni.negate(contactNormal);
-        else
-            contactNormal.copy(contact.ni); // bi is something else. Keep the normal as it is
-
-        // If contactNormal.dot(upAxis) is between 0 and 1, we know that the contact normal is somewhat in the up direction.
-        if (contactNormal.dot(upAxis) > 0.5) // Use a "good" threshold value between 0 and 1 here!
-            canJump = true;
-    });
-
-    var velocity = cannonBody.velocity;
-
-    var PI_2 = Math.PI / 2;
-
-    var onMouseMove = function (event) {
-
-        if (scope.enabled === false) return;
-
-        var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-        var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
-        yawObject.rotation.y -= movementX * 0.002;
-        pitchObject.rotation.x -= movementY * 0.002;
-
-        pitchObject.rotation.x = Math.max(-PI_2, Math.min(PI_2, pitchObject.rotation.x));
-    };
-
-    var onKeyDown = function (event) {
-
-        switch (event.keyCode) {
-
-            case 38: // up
-            case 87: // w
-                moveForward = true;
-                break;
-
-            case 37: // left
-            case 65: // a
-                moveLeft = true;
-                break;
-
-            case 40: // down
-            case 83: // s
-                moveBackward = true;
-                break;
-
-            case 39: // right
-            case 68: // d
-                moveRight = true;
-                break;
-
-            case 32: // space
-                if (canJump === true) {
-                    velocity.y = jumpVelocity;
-                }
-                canJump = false;
-                break;
-        }
-
-    };
-
-    var onKeyUp = function (event) {
-
-        switch (event.keyCode) {
-
-            case 38: // up
-            case 87: // w
-                moveForward = false;
-                break;
-
-            case 37: // left
-            case 65: // a
-                moveLeft = false;
-                break;
-
-            case 40: // down
-            case 83: // a
-                moveBackward = false;
-                break;
-
-            case 39: // right
-            case 68: // d
-                moveRight = false;
-                break;
-
-        }
-
-    };
-
-    document.addEventListener('mousemove', onMouseMove, false);
-    document.addEventListener('keydown', onKeyDown, false);
-    document.addEventListener('keyup', onKeyUp, false);
-
-    this.enabled = false;
-
-    this.getObject = function () {
-        return yawObject;
-    };
-
-    this.getDirection = function (targetVec) {
-        targetVec.set(0, 0, -1);
-        quat.multiplyVector3(targetVec);
-    };
-
-    // Moves the camera to the Cannon.js object position and adds velocity to the object if the run key is down
-    var inputVelocity = new THREE.Vector3();
-    var euler = new THREE.Euler();
-    this.update = function (delta) {
-
-        if (scope.enabled === false) return;
-
-        delta *= 0.1;
-
-        inputVelocity.set(0, 0, 0);
-
-        if (moveForward) {
-            inputVelocity.z = -velocityFactor * delta;
-        }
-        if (moveBackward) {
-            inputVelocity.z = velocityFactor * delta;
-        }
-
-        if (moveLeft) {
-            inputVelocity.x = -velocityFactor * delta;
-        }
-        if (moveRight) {
-            inputVelocity.x = velocityFactor * delta;
-        }
-
-        // Convert velocity to world coordinates
-        euler.x = pitchObject.rotation.x;
-        euler.y = yawObject.rotation.y;
-        euler.order = "XYZ";
-        quat.setFromEuler(euler);
-        inputVelocity.applyQuaternion(quat);
-
-        // Add to the object
-        velocity.x += inputVelocity.x;
-        velocity.z += inputVelocity.z;
-
-        yawObject.position.copy(cannonBody.position);
-    };
-};
-
-//########################
-// code start
+var meikoLogos = [];
+var selMaterial, lastMeshMaterial = false,
+    lastMeshID = false,
+    lastObjectMaterial = false,
+    lastObjectID = false,
+    targetList = [];
 
 var sphereShape, sphereBody, world, physicsMaterial, walls = [],
     balls = [],
@@ -185,9 +12,9 @@ var sphereShape, sphereBody, world, physicsMaterial, walls = [],
     boxMeshes = [];
 
 var camera, scene, renderer;
-var geometry, material, mesh;
 var controls, time = Date.now();
 
+var toolTip = document.getElementById('tooltip');
 var blocker = document.getElementById('blocker');
 var instructions = document.getElementById('instructions');
 
@@ -296,7 +123,7 @@ function initCannon() {
     else
         world.solver = solver;
 
-    world.gravity.set(0, -10, 0);
+    world.gravity.set(0, -20, 0);
     world.broadphase = new CANNON.NaiveBroadphase();
 
     // Create a slippery material (friction coefficient = 0.0)
@@ -304,7 +131,7 @@ function initCannon() {
     var physicsContactMaterial = new CANNON.ContactMaterial(physicsMaterial,
         physicsMaterial,
         0.0, // friction coefficient
-        0.8 // restitution
+        0.3 // restitution
     );
     // We must add the contact materials to the world
     world.addContactMaterial(physicsContactMaterial);
@@ -317,8 +144,8 @@ function initCannon() {
         mass: mass
     });
     sphereBody.addShape(sphereShape);
-    sphereBody.position.set(0, 5, 0);
-    sphereBody.linearDamping = 0.9;
+    sphereBody.position.set(0, 1.5, 0);
+    sphereBody.linearDamping = 0.999;
     world.add(sphereBody);
 
     // Create a plane
@@ -332,171 +159,229 @@ function initCannon() {
 }
 
 function init() {
+    var textureLoader = new THREE.TextureLoader();
 
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // Camera Position
-    camera.position.z = 1.8;
+    selMaterial = new THREE.MeshBasicMaterial({
+        color: 'red',
+        side: '2'
+    }); //color for selected mesh element
+
+    projector = new THREE.Projector();
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x0984a3 );
-    scene.fog = new THREE.Fog(0x000000, 0, 500);
-
-    var ambient = new THREE.AmbientLight(0x212121);
-    scene.add(ambient);
-
-    light = new THREE.SpotLight(0xffffff);
-    light.position.set(10, 30, 50);
-    light.target.position.set(0, 0, 0);
-    if (true) {
-        light.castShadow = true;
-
-        light.shadow.camera.near = 20;
-        light.shadow.camera.far = 50; //camera.far;
-        light.shadow.camera.fov = 40;
-
-        light.shadowMapBias = 0.0039;
-        light.shadowMapDarkness = 0.5;
-        light.shadow.mapSize.width = 1024;
-        light.shadow.mapSize.height = 1024;
-
-        //light.shadowCameraVisible = true;
-    }
-    scene.add(light);
-
-
+    // scene.background = new THREE.Color(0x0984a3);
+    scene.fog = new THREE.Fog(0x201177, 0, 200);
 
     controls = new PointerLockControls(camera, sphereBody);
     scene.add(controls.getObject());
 
-    // floor
-    geometry = new THREE.PlaneGeometry(75, 75, 100, 100);
-    geometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+    // create a global ambient light object
+    var ambientLight = new THREE.AmbientLight("#797979");
+    ambientLight.name = "Mild ambient light";
+    scene.add(ambientLight);
 
-    material = new THREE.MeshBasicMaterial();
-    var textureLoader = new THREE.TextureLoader();
-    textureLoader.load('Teak.jpg', 
-    function ( texture ) {    
-    
+    // floor
+    var floorGeometry = new THREE.PlaneGeometry(25, 25, 100, 100);
+    floorGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+
+    var floorMaterial = new THREE.MeshBasicMaterial();
+    textureLoader.load('carpet.jpg', function (texture) {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.offset.set( 0, 0 );
-        texture.repeat.set( 25, 25);
+        texture.offset.set(0, 0);
+        texture.repeat.set(60, 60);
 
         // The texture has loaded, so assign it to your material object. In the 
         // next render cycle, this material update will be shown on the plane 
         // geometry
-        material.map = texture;
-        material.needsUpdate = true;
+        floorMaterial.map = texture;
+        floorMaterial.needsUpdate = true;
     });
 
-    mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = false;
-    mesh.receiveShadow = true;
-    mesh.position.set(0, -0.01, 0);
-    scene.add(mesh);
+    var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+    floorMesh.castShadow = false;
+    floorMesh.receiveShadow = true;
+    floorMesh.position.y = -0.01;
+    scene.add(floorMesh);
+
+    var texture = THREE.ImageUtils.loadTexture('360.jpg');
+    texture.minFilter = THREE.LinearFilter;
+
+    sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(100, 200, 200),
+        new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.BackSide,
+            overdraw: 0.1
+        })
+    );
+
+    sphere.scale.x = -1;
+    scene.add(sphere);
+
+    var crosshairMaterial = new THREE.LineBasicMaterial({
+        color: 0xAAFFAA
+    });
+
+    // crosshair size
+    var x = 0.01,
+        y = 0.01;
+
+    var crosshairGeometry = new THREE.Geometry();
+
+    // crosshair
+    crosshairGeometry.vertices.push(new THREE.Vector3(0, y, 0));
+    crosshairGeometry.vertices.push(new THREE.Vector3(0, -y, 0));
+    crosshairGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
+    crosshairGeometry.vertices.push(new THREE.Vector3(x, 0, 0));
+    crosshairGeometry.vertices.push(new THREE.Vector3(-x, 0, 0));
+
+    var crosshair = new THREE.Line(crosshairGeometry, crosshairMaterial);
+
+    // place it in the center
+    var crosshairPercentX = 50;
+    var crosshairPercentY = 50;
+    var crosshairPositionX = (crosshairPercentX / 100) * 2 - 1;
+    var crosshairPositionY = (crosshairPercentY / 100) * 2 - 1;
+
+    crosshair.position.x = crosshairPositionX * camera.aspect;
+    crosshair.position.y = crosshairPositionY;
+
+    crosshair.position.z = -0.3;
+
+    camera.add(crosshair);
 
     var loader = new THREE.ObjectLoader();
     loader.load(
         // resource URL
         "meiko.json",
-    
+
         // onLoad callback
         // Here the loaded data is assumed to be an object
         function (obj) {
-
-            obj.castShadow = true;
-            obj.receiveShadow = true;
-
             var renderingParent = new THREE.Group();
-            renderingParent.scale.set(0.001,0.001,0.001);
+            renderingParent.scale.set(0.001, 0.001, 0.001);
             renderingParent.add(obj);
 
-            var geometry = new  THREE.Geometry();
-            renderingParent.traverse( (child) => {
-                if(child instanceof THREE.Mesh ) {
+            var geometry = new THREE.Geometry();
+            renderingParent.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
                     if (child.geometry instanceof THREE.Geometry) {
-                        geometry.merge( child.geometry );
+                        geometry.merge(child.geometry);
+                        targetList.push(child);
                     } else if (child.geometry instanceof THREE.BufferGeometry) {
                         var convertedGeometry = new THREE.Geometry();
                         convertedGeometry.fromBufferGeometry(child.geometry);
-                        geometry.merge( convertedGeometry );
+                        geometry.merge(convertedGeometry);
+                        targetList.push(child);
                     }
+
+                    if (child.name.includes('MEIKO-LOGO'))
+                        meikoLogos.push(child);
                 }
             });
-    
+
             geometry.computeBoundingSphere();
             var boundingSphere = geometry.boundingSphere;
 
-            var offset = boundingSphere.radius * 6;     // get the radius of the bounding sphere for placing lights at certain distance from the object
-            var center = boundingSphere.center;         // get the center of the bounding sphere for pointing lights at it
+            var offset = boundingSphere.radius * 6; // get the radius of the bounding sphere for placing lights at certain distance from the object
+            var center = boundingSphere.center; // get the center of the bounding sphere for pointing lights at it
 
-            const lightColorDark      = '#111111';
-            const lightColorNeutral   = '#606060';
-            const lightColorBright    = '#656565';
-            const lightOpacity        = 0.5;
+            const lightOpacity = 0.5;
 
             // the sun as directional light
-            var sunLight = new THREE.DirectionalLight( lightColorDark );
+            var sunLight = new THREE.DirectionalLight('#222222');
             sunLight.name = "The sun :)";
-            sunLight.position.set( center.x + offset, center.y + offset, -center.z-offset );
-            sunLight.position.multiplyScalar( 50 );
-            sunLight.target.position.set( center.x, center.y, center.z );
-        
-            // create a global ambient light object
-            var ambientLight = new THREE.AmbientLight(lightColorDark );
-            ambientLight.name = "Mild ambient light";
-        
-            // create a hemisphere light object
-            var hemisphereLight = new THREE.HemisphereLight(lightColorDark,lightColorBright,lightOpacity );
-            hemisphereLight.name = "Mild hemisphere light";
-            hemisphereLight.position.set( center.x + offset, center.y + offset, center.z + offset );
-        
-            var spotLight1 = new THREE.SpotLight(lightColorBright,lightOpacity );
-            spotLight1.position.set( -center.x - offset / 2, center.y + offset / 1.5, -center.z - offset / 2 );
-            spotLight1.target.position.set( center.x, center.y, center.z );
-        
-            var spotLight2 = new THREE.SpotLight(lightColorNeutral,lightOpacity );
-            spotLight2.position.set( center.x + offset / 2, center.y + offset / 1.5, -center.z - offset / 2 );
-            spotLight2.target.position.set( center.x, center.y, center.z );
-        
-            scene.add( sunLight );
-            scene.add( ambientLight );
-            scene.add( hemisphereLight );
-        
+            sunLight.position.set(center.x + offset, center.y + offset, -center.z - offset);
+            sunLight.target.position.set(center.x, center.y, center.z);
+
+            var spotLight1 = new THREE.SpotLight('#656565', lightOpacity);
+            spotLight1.position.set(-center.x - offset / 2, center.y + offset / 1.5, -center.z - offset / 2);
+            spotLight1.target.position.set(center.x, center.y, center.z);
+
+            var spotLight2 = new THREE.SpotLight('#606060', lightOpacity);
+            spotLight2.position.set(center.x + offset / 2, center.y + offset / 1.5, center.z - offset / 2);
+            spotLight2.target.position.set(center.x, center.y, center.z);
+
             // create 2 spotlights
-            var spotLights = [ spotLight1, spotLight2 ];
+            var spotLights = [spotLight1, spotLight2];
             spotLights.forEach(spotLight => {
-                scene.add( spotLight );
+                scene.add(spotLight);
             });
 
             // Add the loaded object to the scene
             scene.add(renderingParent);
             console.log('scene added');
+
+            var logoMaterial = new THREE.MeshBasicMaterial();
+            textureLoader.load('meiko-logo.png', function (texture) {
+                texture.wrapS = texture.wrapT = THREE.MirroredRepeatWrapping;
+                texture.offset.set(0, 0);
+                texture.repeat.set(1, 1);
+
+                // The texture has loaded, so assign it to your material object. In the 
+                // next render cycle, this material update will be shown on the plane 
+                // geometry
+                logoMaterial.map = texture;
+                logoMaterial.side = THREE.FrontSide;
+                logoMaterial.needsUpdate = true;
+            });
+
+            meikoLogos.forEach(logo => {
+                logo.material = logoMaterial;
+            });
+
+            var cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), logoMaterial);
+            cube.position.set(5, 1, 2);
+            scene.add(cube);
         },
-    
+
         // onProgress callback
         function (xhr) {
-            console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
-    
+
         // onError callback
         function (err) {
             console.error('An error happened: ' + err);
         }
-    ); 
+    );
 
     renderer = new THREE.WebGLRenderer({
-        antialias: true, alpha: true
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance",
     });
 
-    renderer.shadowMapType = THREE.PCFSoftShadowMap; // options are THREE.BasicShadowMap | THREE.PCFShadowMap | THREE.PCFSoftShadowMap
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.shadowMap.enabled = true;
     renderer.shadowMapSoft = true;
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(scene.fog.color, 0);
+    renderer.compile(scene, camera);
 
     document.body.appendChild(renderer.domElement);
 
     window.addEventListener('resize', onWindowResize, false);
+}
+
+function computeNormalsAndFaces() {
+    for (var i = 0; i < scene.children.length; i++) {
+        if (scene.children[i].hasOwnProperty("geometry")) {
+            scene.children[i].geometry.mergeVertices();
+            scene.children[i].castShadow = true;
+            scene.children[i].geometry.computeFaceNormals();
+            targetList.push(scene.children[i]);
+        }
+        if (scene.children[i].children.length > 0) {
+            for (var k = 0; k < scene.children[i].children.length; k++) {
+                if (scene.children[i].children[k].hasOwnProperty("geometry")) {
+                    targetList.push(scene.children[i].children[k]);
+                }
+            }
+        }
+    }
 }
 
 function onWindowResize() {
@@ -509,6 +394,12 @@ var dt = 1 / 60;
 
 function animate() {
     requestAnimationFrame(animate);
+    update();
+    renderer.render(scene, camera);
+    time = Date.now();
+}
+
+function update() {
     if (controls.enabled) {
         world.step(dt);
 
@@ -526,55 +417,76 @@ function animate() {
     }
 
     controls.update(Date.now() - time);
-    renderer.render(scene, camera);
-    time = Date.now();
-
 }
 
-var ballShape = new CANNON.Sphere(0.2);
-var ballGeometry = new THREE.SphereGeometry(ballShape.radius, 32, 32);
-var shootDirection = new THREE.Vector3();
-var shootVelo = 35;
-var projector = new THREE.Projector();
-
-function getShootDir(targetVec) {
-    var vector = targetVec;
-    targetVec.set(0, 0, 1);
-    vector.unproject(camera);
-    var ray = new THREE.Ray(sphereBody.position, vector.sub(sphereBody.position).normalize());
-    targetVec.copy(ray.direction);
-}
-
-window.addEventListener("click", function (e) {
-    if (controls.enabled == true) {
-        var x = sphereBody.position.x;
-        var y = sphereBody.position.y;
-        var z = sphereBody.position.z;
-        var ballBody = new CANNON.Body({
-            mass: 1
-        });
-        ballBody.addShape(ballShape);
-        var randomColor = '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-        material2 = new THREE.MeshPhongMaterial({
-            color: randomColor
-        });
-        var ballMesh = new THREE.Mesh(ballGeometry, material2);
-        world.add(ballBody);
-        scene.add(ballMesh);
-        ballMesh.castShadow = true;
-        ballMesh.receiveShadow = true;
-        balls.push(ballBody);
-        ballMeshes.push(ballMesh);
-        getShootDir(shootDirection);
-        ballBody.velocity.set(shootDirection.x * shootVelo,
-            shootDirection.y * shootVelo,
-            shootDirection.z * shootVelo);
-
-        // Move the ball outside the player sphere
-        x += shootDirection.x * (sphereShape.radius * 1.02 + ballShape.radius);
-        y += shootDirection.y * (sphereShape.radius * 1.02 + ballShape.radius);
-        z += shootDirection.z * (sphereShape.radius * 1.02 + ballShape.radius);
-        ballBody.position.set(x, y, z);
-        ballMesh.position.set(x, y, z);
+window.addEventListener("click", function (event) {
+    if (controls.enabled != true) {
+        return;
     }
+
+    clickHandler(event);
 });
+
+function clickHandler(event) {
+    event.preventDefault();
+    hideTooltip();
+
+    var vector = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
+    vector.unproject(camera);
+
+    var raycaster = new THREE.Raycaster();
+    raycaster.set(camera.getWorldPosition(new THREE.Vector3()), camera.getWorldDirection(new THREE.Vector3()));
+
+    var intersects = raycaster.intersectObjects(targetList);
+    if (intersects.length <= 0) {
+        return;
+    }
+
+    var j = 0;
+    while (j < intersects.length) {
+
+        //FOR MESHES:
+        if (!isEmptyObject(intersects[j].object.userData)) {
+            showTooltip(intersects[j].object.userData);
+            break;
+        }
+
+        //FOR OBJECT3D
+        if (!isEmptyObject(intersects[j].object.parent.userData)) {
+            showTooltip(intersects[j].object.parent.userData);
+            break;
+        }
+
+        j++;
+    }
+}
+
+function isEmptyObject(obj) {
+    for (var prop in obj) {
+        if (obj.hasOwnProperty(prop)) {
+            return false;
+        }
+    }
+
+    return JSON.stringify(obj) === JSON.stringify({});
+}
+
+function hideTooltip() {
+    let table = toolTip.querySelector('table');
+    toolTip.style.display = 'none';
+    // table.innerHTML = '';
+}
+
+function showTooltip(obj) {
+    let table = toolTip.querySelector('table');
+    table.innerHTML = '';
+    for (const [key, value] of Object.entries(obj)) {
+        table.insertRow();
+        var row = table.rows[table.rows.length - 1];
+        row.insertCell().textContent = key;
+        row.insertCell().textContent = value;
+    }
+    toolTip.style.top = (window.innerHeight / 2 + 20) + 'px';
+    toolTip.style.left = (window.innerWidth / 2 + 20) + 'px';
+    toolTip.style.display = 'block';
+}

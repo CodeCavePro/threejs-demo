@@ -1,21 +1,40 @@
 <!DOCTYPE html>
+<!-- saved from url=(0062)https://schteppe.github.io/cannon.js/examples/threejs_fps.html -->
 <html>
+
 <head>
-    <link rel="stylesheet" href="virtualnext.css" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>cannon.js + three.js physics shooter</title>
+    <link rel="stylesheet" href="virtualnext.css">
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/98/three.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.js"></script>
+<script defer src="https://threejs.org/examples/js/renderers/Projector.js"></script>
+<script defer src="PointerLockControls.js"></script>
+<script defer src="virtualnext.js"></script>
+
 </head>
+
 <body>
 
-    <div id="blocker">
-        <div id="instructions">
-            <strong style="color: #ff0054; font-size: 48px;">Virtual NEXT</strong><br />
-            <span style="font-size:40px">Click to start navigating.</span><br />
-            (W,A,S,D / ←↕→ keys = Move, MOUSE = Look around)
-        </div>
+    <div id="tooltip" style="display: none;">
+        <table></table>
     </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/98/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.js"></script>
-<script src="https://threejs.org/examples/js/renderers/Projector.js"></script>
-<script src="virtualnext.js"></script>
+    <div id="blocker" style="display: -webkit-box;">
+
+        <div id="blocker">
+            <div id="instructions">
+                <strong style="color: #ff0054; font-size: 48px;">Virtual NEXT</strong><br />
+                <span style="font-size:40px">Click to start navigating.</span><br />
+                use W,A,S,D or ←↕→ keys to move & your MOUSE to look around
+            </div>
+        </div>
+
+
+    </div>
+
 </body>
+
 </html>
