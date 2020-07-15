@@ -66,6 +66,7 @@ body {
     padding: 1em;
     text-align: center;
     overflow-y: scroll;
+    display: none;
 }
 
 #tooltip table {
