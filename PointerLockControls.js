@@ -120,9 +120,9 @@ var PointerLockControls = function (camera, cannonBody) {
 
     };
 
-    document.addEventListener('mousemove', onMouseMove, false);
-    document.addEventListener('keydown', onKeyDown, false);
-    document.addEventListener('keyup', onKeyUp, false);
+    window.addEventListener('mousemove', onMouseMove, false);
+    (window.parent || window).addEventListener('keydown', onKeyDown, false);
+    (window.parent || window).addEventListener('keyup', onKeyUp, false);
 
     this.enabled = false;
 
