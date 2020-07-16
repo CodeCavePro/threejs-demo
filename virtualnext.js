@@ -162,18 +162,15 @@ function initCannon() {
 function init() {
     var textureLoader = new THREE.TextureLoader();
 
+    scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x201177, 0, 200);
+
     selMaterial = new THREE.MeshBasicMaterial({
         color: 'red',
         side: '2'
     }); //color for selected mesh element
 
-    projector = new THREE.Projector();
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-    scene = new THREE.Scene();
-    // scene.background = new THREE.Color(0x0984a3);
-    scene.fog = new THREE.Fog(0x201177, 0, 200);
-
     controls = new PointerLockControls(camera, sphereBody);
     scene.add(controls.getObject());
 
