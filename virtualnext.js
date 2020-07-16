@@ -84,11 +84,12 @@ if (havePointerLock) {
             document.addEventListener('mozfullscreenchange', fullscreenchange, false);
 
             element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
-
             element.requestFullscreen();
 
         } else {
 
+            element.requestFullscreen = element.requestFullscreen || element.webkitRequestFullscreen;
+            element.requestFullscreen();
             element.requestPointerLock();
 
         }
