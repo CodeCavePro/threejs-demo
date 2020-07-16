@@ -77,7 +77,6 @@ if (havePointerLock) {
 
                     element.requestPointerLock();
                 }
-
             }
 
             document.addEventListener('fullscreenchange', fullscreenchange, false);
@@ -185,7 +184,7 @@ function init() {
     floorGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
 
     var floorMaterial = new THREE.MeshBasicMaterial();
-    textureLoader.load('carpet.jpg', function (texture) {
+    textureLoader.load('textures/carpet.jpg', function (texture) {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.offset.set(0, 0);
         texture.repeat.set(60, 60);
@@ -203,16 +202,17 @@ function init() {
     floorMesh.position.y = -0.01;
     scene.add(floorMesh);
 
-    var texture = THREE.ImageUtils.loadTexture('360.jpg');
-    texture.minFilter = THREE.LinearFilter;
+    var worldShpereMaterial = new THREE.MeshBasicMaterial();
+    textureLoader.load('textures/360.jpg', function (texture) {
+        texture.minFilter = THREE.LinearFilter;
+        worldShpereMaterial.map = texture;
+        worldShpereMaterial.side = THREE.BackSide;
+        worldShpereMaterial.needsUpdate = true;
+    });
 
     sphere = new THREE.Mesh(
         new THREE.SphereGeometry(100, 200, 200),
-        new THREE.MeshBasicMaterial({
-            map: texture,
-            side: THREE.BackSide,
-            overdraw: 0.1
-        })
+        worldShpereMaterial
     );
 
     sphere.scale.x = -1;
@@ -253,7 +253,7 @@ function init() {
     var loader = new THREE.ObjectLoader();
     loader.load(
         // resource URL
-        "meiko.json",
+        "booths/meiko.json",
 
         // onLoad callback
         // Here the loaded data is assumed to be an object
@@ -313,7 +313,7 @@ function init() {
             console.log('scene added');
 
             var logoMaterial = new THREE.MeshBasicMaterial();
-            textureLoader.load('meiko-logo.png', function (texture) {
+            textureLoader.load('textures/meiko-logo.png', function (texture) {
                 texture.wrapS = texture.wrapT = THREE.MirroredRepeatWrapping;
                 texture.offset.set(0, 0);
                 texture.repeat.set(1, 1);
