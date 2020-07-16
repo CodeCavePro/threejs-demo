@@ -288,7 +288,7 @@ function init() {
             var offset = boundingSphere.radius * 6; // get the radius of the bounding sphere for placing lights at certain distance from the object
             var center = boundingSphere.center; // get the center of the bounding sphere for pointing lights at it
 
-            const lightOpacity = 0.5;
+            var lightOpacity = 0.5;
 
             // the sun as directional light
             var sunLight = new THREE.DirectionalLight('#222222');
@@ -488,21 +488,38 @@ function isEmptyObject(obj) {
 }
 
 function hideTooltip() {
-    let table = toolTip.querySelector('table');
     toolTip.style.display = 'none';
-    // table.innerHTML = '';
+    toolTip.innerHTML = '';
 }
 
 function showTooltip(obj) {
-    let table = toolTip.querySelector('table');
-    table.innerHTML = '';
-    for (const [key, value] of Object.entries(obj)) {
+    if (!controls.enabled)
+        return;
+
+    var table = document.createElement('table');
+    for (var [key, value] of Object.entries(obj)) {
+        if (key === 'URL Manufacturer')
+        {
+            setTimeout(function (){ 
+                Object.assign(document.createElement('a'), { target: '_blank', href: value}).click();
+             }, 500);
+            showInfo = false;
+            continue;
+        }        
+
         table.insertRow();
         var row = table.rows[table.rows.length - 1];
+        if (key === 'Comments')
+        {
+            row.insertCell().textContent = value;
+            continue;
+        }
+
         row.insertCell().textContent = key;
         row.insertCell().textContent = value;
     }
     toolTip.style.top = (window.innerHeight / 2 + 20) + 'px';
     toolTip.style.left = (window.innerWidth / 2 + 20) + 'px';
+    toolTip.appendChild(table);
     toolTip.style.display = 'block';
 }
