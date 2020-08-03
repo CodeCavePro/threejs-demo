@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:486128827bd4299c1e192763d2ddd2cea9a21fe4d9db5899ee1b3b57586f196b
-size 825
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "http://localhost:5500/index.html",
+            "webRoot": "${workspaceFolder}",
+            "runtimeExecutable": "${env:LOCALAPPDATA}\\Chromium\\Application\\chrome.exe",
+            "runtimeArgs": [
+                "--disable-web-security",
+                "--force-empty-corb-allowlist",
+                "--enable-features=OutOfBlinkCors,CorbAllowlistAlsoAppliesToOorCors"
+            ]
+        }
+    ]
+}
