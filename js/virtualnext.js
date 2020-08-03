@@ -1,5 +1,4 @@
 var showInfo = false;
-var meikoLogos = [];
 var selMaterial, lastMeshMaterial = false,
     lastMeshID = false,
     lastObjectMaterial = false,
@@ -180,7 +179,7 @@ function init() {
     scene.add(ambientLight);
 
     // floor
-    var floorGeometry = new THREE.PlaneGeometry(25, 25, 100, 100);
+    var floorGeometry = new THREE.PlaneGeometry(100, 100, 250, 250);
     floorGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
 
     var floorMaterial = new THREE.MeshBasicMaterial();
@@ -250,10 +249,11 @@ function init() {
 
     camera.add(crosshair);
 
+    var modelJSON = (window.location.hash) ? window.location.hash.split('#')[1] : 'meiko';
     var loader = new THREE.ObjectLoader();
     loader.load(
         // resource URL
-        "booths/meiko.json",
+        "booths/" + modelJSON + ".json",
 
         // onLoad callback
         // Here the loaded data is assumed to be an object
@@ -266,6 +266,8 @@ function init() {
             renderingParent.traverse((child) => {
                 if (child instanceof THREE.Mesh) {
                     if (child.geometry instanceof THREE.Geometry) {
+                        // child.geometry.normalize();
+                        child.geometry.computeVertexNormals();
                         geometry.merge(child.geometry);
                         targetList.push(child);
                     } else if (child.geometry instanceof THREE.BufferGeometry) {
@@ -274,9 +276,6 @@ function init() {
                         geometry.merge(convertedGeometry);
                         targetList.push(child);
                     }
-
-                    if (child.name.includes('MEIKO-LOGO'))
-                        meikoLogos.push(child);
                 }
             });
 
@@ -311,28 +310,6 @@ function init() {
             // Add the loaded object to the scene
             scene.add(renderingParent);
             console.log('scene added');
-
-            var logoMaterial = new THREE.MeshBasicMaterial();
-            textureLoader.load('textures/meiko-logo.png', function (texture) {
-                texture.wrapS = texture.wrapT = THREE.MirroredRepeatWrapping;
-                texture.offset.set(0, 0);
-                texture.repeat.set(1, 1);
-
-                // The texture has loaded, so assign it to your material object. In the 
-                // next render cycle, this material update will be shown on the plane 
-                // geometry
-                logoMaterial.map = texture;
-                logoMaterial.side = THREE.FrontSide;
-                logoMaterial.needsUpdate = true;
-            });
-
-            meikoLogos.forEach(logo => {
-                logo.material = logoMaterial;
-            });
-
-            var cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), logoMaterial);
-            cube.position.set(5, 1, 2);
-            scene.add(cube);
         },
 
         // onProgress callback
