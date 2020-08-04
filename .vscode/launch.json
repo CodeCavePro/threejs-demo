@@ -11,7 +11,7 @@
             "type": "pwa-chrome",
             "url": "http://localhost:5500",
             "webRoot": "${workspaceFolder}",
-            // "runtimeExecutable": "${env:LOCALAPPDATA}\\Chromium\\Application\\chrome.exe",
+            "runtimeExecutable": "${env:LOCALAPPDATA}\\Chromium\\Application\\chrome.exe",
             "runtimeArgs": [
                 "--force-empty-corb-allowlist",
                 "--enable-features=OutOfBlinkCors,CorbAllowlistAlsoAppliesToOorCors"

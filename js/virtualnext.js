@@ -266,8 +266,10 @@ function init() {
             renderingParent.traverse((child) => {
                 if (child instanceof THREE.Mesh) {
                     if (child.geometry instanceof THREE.Geometry) {
-                        // child.geometry.normalize();
+                        child.geometry.computeBoundingSphere();
+                        child.geometry.computeFaceNormals();
                         child.geometry.computeVertexNormals();
+
                         geometry.merge(child.geometry);
                         targetList.push(child);
                     } else if (child.geometry instanceof THREE.BufferGeometry) {
