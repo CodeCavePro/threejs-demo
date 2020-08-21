@@ -185,6 +185,7 @@ function init() {
     var floorMaterial = new THREE.MeshBasicMaterial();
     textureLoader.load('textures/carpet.jpg', function (texture) {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.magFilter = THREE.NearestFilter;
         texture.offset.set(0, 0);
         texture.repeat.set(60, 60);
 
@@ -262,14 +263,17 @@ function init() {
             renderingParent.scale.set(0.001, 0.001, 0.001);
             renderingParent.add(obj);
 
+            // Add the loaded object to the scene
+            scene.add(renderingParent);
+            console.log('scene added');
+
             var geometry = new THREE.Geometry();
             renderingParent.traverse((child) => {
                 if (child instanceof THREE.Mesh) {
                     if (child.geometry instanceof THREE.Geometry) {
                         child.geometry.computeBoundingSphere();
-                        child.geometry.computeFaceNormals();
-                        child.geometry.computeVertexNormals();
-
+                        // child.geometry.computeFaceNormals();
+                        // child.geometry.computeVertexNormals();
                         geometry.merge(child.geometry);
                         targetList.push(child);
                     } else if (child.geometry instanceof THREE.BufferGeometry) {
@@ -279,7 +283,32 @@ function init() {
                         targetList.push(child);
                     }
                 }
+
+                if (false) // Box
+                {
+                    child.matrixWorldNeedsUpdate = true;
+                    child.geometry.computeBoundingBox();
+                    var boxBody = new CANNON.Body();
+                    var boxSize = child.geometry.boundingBox.getSize(new THREE.Vector3());
+                    var halfExtents = new CANNON.Vec3(boxSize.x, boxSize.y, boxSize.z);
+                    boxBody.addShape(new CANNON.Box(halfExtents));
+                    var boxPos = child.getWorldPosition(new THREE.Vector3());
+                    boxBody.position.copy(boxPos);
+                    world.add(boxBody);
+                }
             });
+
+            // var video = document.getElementById( 'video' );
+            // var videoTexture = new THREE.VideoTexture( video );
+            // videoTexture.minFilter = THREE.NearestFilter;
+            // videoTexture.magFilter = THREE.NearestFilter;
+            // videoTexture.format = THREE.RGBFormat;
+            // var videoMaterial = new THREE.MeshBasicMaterial( { map: videoTexture } );
+            // var videoCube = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), videoMaterial ); 
+            // videoCube.castShadow = true;
+            // videoCube.position.set(-5,5,-5);
+            // scene.add(videoCube);
+            // video.play();
 
             geometry.computeBoundingSphere();
             var boundingSphere = geometry.boundingSphere;
@@ -287,31 +316,37 @@ function init() {
             var offset = boundingSphere.radius * 6; // get the radius of the bounding sphere for placing lights at certain distance from the object
             var center = boundingSphere.center; // get the center of the bounding sphere for pointing lights at it
 
-            var lightOpacity = 0.5;
+            var lightOpacity = 0.45;
 
             // the sun as directional light
-            var sunLight = new THREE.DirectionalLight('#222222');
+            var sunLight = new THREE.DirectionalLight('#ffffff');
             sunLight.name = "The sun :)";
-            sunLight.position.set(center.x + offset, center.y + offset, -center.z - offset);
-            sunLight.target.position.set(center.x, center.y, center.z);
+            sunLight.position.set( 0, 10, 0 );
+            sunLight.target.position.set( 0, 0, 0 );
+            // sunLight.position.set(center.x + offset, center.y + offset, -center.z - offset);
+            // sunLight.target.position.set(center.x, center.y, center.z);
 
             var spotLight1 = new THREE.SpotLight('#656565', lightOpacity);
-            spotLight1.position.set(-center.x - offset / 2, center.y + offset / 1.5, -center.z - offset / 2);
-            spotLight1.target.position.set(center.x, center.y, center.z);
+            spotLight1.castShadow = true;
+            spotLight1.shadowMapDarkness = 0.2;
+            spotLight1.shadow.mapSize.width = 16 * 512;
+            spotLight1.shadow.mapSize.height = 16 * 512;
+            spotLight1.position.set( 20, 80, 10 );
+            spotLight1.target.position.set( 0, 0, 0 );
+            // spotLight1.position.set(-center.x - offset / 2, center.y + offset / 1.5, -center.z - offset / 2);
+            // spotLight1.target.position.set(center.x, center.y, center.z);
 
             var spotLight2 = new THREE.SpotLight('#606060', lightOpacity);
-            spotLight2.position.set(center.x + offset / 2, center.y + offset / 1.5, center.z - offset / 2);
-            spotLight2.target.position.set(center.x, center.y, center.z);
+            spotLight2.position.set( 20, 60, 10 );
+            spotLight2.target.position.set( 0, 0, 20 );
+            // spotLight2.position.set(center.x + offset / 2, center.y + offset / 1.5, center.z - offset / 2);
+            // spotLight2.target.position.set(center.x, center.y, center.z);
 
             // create 2 spotlights
             var spotLights = [spotLight1, spotLight2];
             spotLights.forEach(spotLight => {
                 scene.add(spotLight);
             });
-
-            // Add the loaded object to the scene
-            scene.add(renderingParent);
-            console.log('scene added');
         },
 
         // onProgress callback
@@ -333,7 +368,7 @@ function init() {
 
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMapSoft = true;
+    renderer.shadowMapSoft = false;
 
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(scene.fog.color, 0);
