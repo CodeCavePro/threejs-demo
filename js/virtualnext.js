@@ -13,7 +13,6 @@ var sphereShape, sphereBody, world, physicsMaterial, walls = [],
 
 var camera, scene, renderer;
 var controls, time = Date.now();
-
 var toolTip = document.getElementById('tooltip');
 var blocker = document.getElementById('blocker');
 var instructions = document.getElementById('instructions');
@@ -178,46 +177,6 @@ function init() {
     ambientLight.name = "Mild ambient light";
     scene.add(ambientLight);
 
-    // floor
-    var floorGeometry = new THREE.PlaneGeometry(100, 100, 250, 250);
-    floorGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-
-    var floorMaterial = new THREE.MeshBasicMaterial();
-    textureLoader.load('textures/carpet.jpg', function (texture) {
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.magFilter = THREE.NearestFilter;
-        texture.offset.set(0, 0);
-        texture.repeat.set(60, 60);
-
-        // The texture has loaded, so assign it to your material object. In the 
-        // next render cycle, this material update will be shown on the plane 
-        // geometry
-        floorMaterial.map = texture;
-        floorMaterial.needsUpdate = true;
-    });
-
-    var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-    floorMesh.castShadow = false;
-    floorMesh.receiveShadow = true;
-    floorMesh.position.y = -0.01;
-    scene.add(floorMesh);
-
-    var worldShpereMaterial = new THREE.MeshBasicMaterial();
-    textureLoader.load('textures/360.jpg', function (texture) {
-        texture.minFilter = THREE.LinearFilter;
-        worldShpereMaterial.map = texture;
-        worldShpereMaterial.side = THREE.BackSide;
-        worldShpereMaterial.needsUpdate = true;
-    });
-
-    sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(100, 200, 200),
-        worldShpereMaterial
-    );
-
-    sphere.scale.x = -1;
-    scene.add(sphere);
-
     var crosshairMaterial = new THREE.LineBasicMaterial({
         color: 0xAAFFAA
     });
@@ -347,6 +306,8 @@ function init() {
             spotLights.forEach(spotLight => {
                 scene.add(spotLight);
             });
+
+            scene.background = new THREE.Color( 0xffffff );
         },
 
         // onProgress callback
@@ -459,14 +420,14 @@ function handlerRayIntersection(event) {
     while (j < intersects.length) {
 
         //FOR MESHES:
-        if (!isEmptyObject(intersects[j].object.userData)) {
-            showTooltip(intersects[j].object.userData);
+        if (!isEmptyObject(intersects[j].object)) {
+            showTooltip(intersects[j].object);
             break;
         }
 
         //FOR OBJECT3D
-        if (!isEmptyObject(intersects[j].object.parent.userData)) {
-            showTooltip(intersects[j].object.parent.userData);
+        if (!isEmptyObject(intersects[j].object.parent)) {
+            showTooltip(intersects[j].object.parent);
             break;
         }
 
@@ -514,24 +475,31 @@ function showTooltip(obj) {
         {
             setTimeout(function (){ 
                 Object.assign(document.createElement('a'), { target: '_blank', href: value}).click();
-             }, 500);
+            }, 10);
             showInfo = false;
-            continue;
+            break;
         }        
 
+        while(table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+        
         table.insertRow();
         var row = table.rows[table.rows.length - 1];
         if (key === 'Comments')
         {
             row.insertCell().textContent = value;
-            continue;
+            break;
         }
 
         row.insertCell().textContent = key;
         row.insertCell().textContent = value;
     }
-    toolTip.style.top = (window.innerHeight / 2 + 20) + 'px';
-    toolTip.style.left = (window.innerWidth / 2 + 20) + 'px';
-    toolTip.appendChild(table);
-    toolTip.style.display = 'block';
+
+    if (showInfo) {
+        toolTip.style.top = (window.innerHeight / 2 + 20) + 'px';
+        toolTip.style.left = (window.innerWidth / 2 + 20) + 'px';
+        toolTip.appendChild(table);
+        toolTip.style.display = 'block';
+    }
 }
